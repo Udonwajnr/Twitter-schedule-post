@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, Download, Check, Sparkles } from "lucide-react"
+import { Check, Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 
@@ -46,17 +46,38 @@ const plans = [
   },
 ]
 
-const invoices = [
-  { id: "INV-001", date: "Jan 1, 2025", amount: "₦5,000", status: "Paid" },
-  { id: "INV-002", date: "Dec 1, 2024", amount: "₦5,000", status: "Paid" },
-  { id: "INV-003", date: "Nov 1, 2024", amount: "₦5,000", status: "Paid" },
-]
-
 export function BillingDashboard() {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [userData, setUserData] = useState(null)
+  const [invoices, setInvoices] = useState([])
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
   const { data: session } = useSession()
-  const currentPlan = "Basic"
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [userRes, invoicesRes] = await Promise.all([fetch("/api/user/me"), fetch("/api/invoices")])
+
+        const userData = await userRes.json()
+        const invoicesData = await invoicesRes.json()
+
+        if (userData.success) {
+          setUserData(userData.user)
+        }
+
+        if (invoicesData.success) {
+          setInvoices(invoicesData.invoices)
+        }
+      } catch (error) {
+        console.error("Failed to fetch billing data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const handleUpgrade = async (plan, priceValue) => {
     if (priceValue === 0) {
@@ -102,6 +123,22 @@ export function BillingDashboard() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading billing information...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const currentPlan = userData?.plan || "free"
+  const currentPlanName = currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)
+  const creditsRemaining = userData?.credits || 0
+  const totalCredits = userData?.totalCredits || 5
+
   return (
     <div className="space-y-6">
       {/* Current plan */}
@@ -109,8 +146,10 @@ export function BillingDashboard() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">Current Plan: {currentPlan}</CardTitle>
-              <CardDescription className="mt-1">Your subscription renews on February 1, 2025</CardDescription>
+              <CardTitle className="text-2xl">Current Plan: {currentPlanName}</CardTitle>
+              <CardDescription className="mt-1">
+                {currentPlan === "free" ? "Upgrade to unlock more features" : "Your subscription is active"}
+              </CardDescription>
             </div>
             <Badge className="bg-primary text-primary-foreground">Active</Badge>
           </div>
@@ -118,15 +157,16 @@ export function BillingDashboard() {
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold">₦5,000</p>
+              <p className="text-3xl font-bold">
+                {currentPlan === "free" ? "₦0" : currentPlan === "basic" ? "₦5,000" : "₦10,000"}
+              </p>
               <p className="text-sm text-muted-foreground">per month</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline">Change Plan</Button>
-              <Button variant="outline" className="text-destructive bg-transparent">
-                Cancel Subscription
-              </Button>
-            </div>
+            {currentPlan !== "free" && (
+              <div className="flex gap-2">
+                <Button variant="outline">Change Plan</Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -142,13 +182,18 @@ export function BillingDashboard() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">AI Generation Credits</span>
-                <span className="text-sm text-muted-foreground">45 / 50 remaining</span>
+                <span className="text-sm text-muted-foreground">
+                  {creditsRemaining} / {totalCredits} remaining
+                </span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-primary to-accent" style={{ width: "90%" }} />
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-accent"
+                  style={{ width: `${(creditsRemaining / totalCredits) * 100}%` }}
+                />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">Resets on February 1, 2025</p>
+            <p className="text-xs text-muted-foreground">Credits refresh monthly</p>
           </div>
         </CardContent>
       </Card>
@@ -160,9 +205,9 @@ export function BillingDashboard() {
           {plans.map((plan) => (
             <Card
               key={plan.name}
-              className={`relative ${plan.name === currentPlan ? "border-primary shadow-lg" : "border-border/50"}`}
+              className={`relative ${plan.name.toLowerCase() === currentPlan ? "border-primary shadow-lg" : "border-border/50"}`}
             >
-              {plan.name === currentPlan && (
+              {plan.name.toLowerCase() === currentPlan && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground">Current Plan</Badge>
                 </div>
@@ -189,13 +234,13 @@ export function BillingDashboard() {
                 </ul>
                 <Button
                   className="w-full"
-                  variant={plan.name === currentPlan ? "outline" : "default"}
-                  disabled={plan.name === currentPlan || isProcessing}
+                  variant={plan.name.toLowerCase() === currentPlan ? "outline" : "default"}
+                  disabled={plan.name.toLowerCase() === currentPlan || isProcessing}
                   onClick={() => handleUpgrade(plan.name, plan.priceValue)}
                 >
                   {isProcessing
                     ? "Processing..."
-                    : plan.name === currentPlan
+                    : plan.name.toLowerCase() === currentPlan
                       ? "Current Plan"
                       : plan.priceValue === 0
                         ? "Downgrade"
@@ -207,30 +252,6 @@ export function BillingDashboard() {
         </div>
       </div>
 
-      {/* Payment method */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Method</CardTitle>
-          <CardDescription>Manage your payment information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-medium">Visa ending in 4242</p>
-                <p className="text-sm text-muted-foreground">Expires 12/2026</p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm">
-              Update
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Billing history */}
       <Card>
         <CardHeader>
@@ -238,25 +259,31 @@ export function BillingDashboard() {
           <CardDescription>Download your past invoices</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {invoices.map((invoice) => (
-              <div key={invoice.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="font-medium">{invoice.id}</p>
-                    <p className="text-sm text-muted-foreground">{invoice.date}</p>
+          {invoices.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No invoices yet</p>
+          ) : (
+            <div className="space-y-3">
+              {invoices.map((invoice) => (
+                <div
+                  key={invoice._id}
+                  className="flex items-center justify-between p-3 border border-border rounded-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="font-medium">{invoice.invoiceNumber}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(invoice.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="font-medium">₦{invoice.amount.toLocaleString()}</span>
+                    <Badge variant={invoice.status === "paid" ? "secondary" : "destructive"}>{invoice.status}</Badge>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-medium">{invoice.amount}</span>
-                  <Badge variant="secondary">{invoice.status}</Badge>
-                  <Button variant="ghost" size="sm">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
