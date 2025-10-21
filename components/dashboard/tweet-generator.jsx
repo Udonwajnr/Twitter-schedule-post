@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { ScheduleTweetDialog } from "./schedule-tweet-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { MediaUpload } from "./media-upload"
 
 const tones = [
   { value: "professional", label: "Professional" },
@@ -28,6 +29,8 @@ const postTypes = [
   { value: "quote", label: "Quote Tweet", premium: true },
 ]
 
+
+
 export function TweetGenerator() {
   const [topic, setTopic] = useState("")
   const [tone, setTone] = useState("professional")
@@ -38,6 +41,7 @@ export function TweetGenerator() {
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [selectedTweetForSchedule, setSelectedTweetForSchedule] = useState(null)
   const [userData, setUserData] = useState(null)
+  const [mediaFiles, setMediaFiles] = useState([])
   const { toast } = useToast()
   const { data: session } = useSession()
 
@@ -68,7 +72,13 @@ export function TweetGenerator() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, tone, count: 3, postType }),
+        body: JSON.stringify({
+          topic,
+          tone,
+          count: 3,
+          postType,
+          mediaUrls: mediaFiles.map((f) => f.url),
+        }),
       })
 
       const data = await response.json()
@@ -236,6 +246,9 @@ export function TweetGenerator() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Media upload component */}
+              <MediaUpload mediaFiles={mediaFiles} onMediaChange={setMediaFiles} maxImages={4} maxVideos={1} />
 
               {/* Premium feature alert */}
               {!isPremium && postType !== "single" && (

@@ -41,6 +41,25 @@ export async function POST(req) {
 
     let result
 
+    const mediaIds = []
+    if (mediaUrls && mediaUrls.length > 0) {
+      for (const mediaUrl of mediaUrls) {
+        try {
+          // Download media from Cloudinary
+          const mediaResponse = await fetch(mediaUrl)
+          const mediaBuffer = await mediaResponse.arrayBuffer()
+
+          // Upload to Twitter
+          const mediaId = await client.v1.uploadMedia(Buffer.from(mediaBuffer), {
+            mimeType: mediaUrl.includes(".mp4") ? "video/mp4" : "image/jpeg",
+          })
+          mediaIds.push(mediaId)
+        } catch (error) {
+          console.error("Media upload error:", error)
+        }
+      }
+    }
+
     // Handle thread posting
     if (isThread && threadTweets?.length > 0) {
       const tweets = []
@@ -51,6 +70,9 @@ export async function POST(req) {
         if (previousTweetId) {
           tweetData.reply = { in_reply_to_tweet_id: previousTweetId }
         }
+        if (mediaIds.length > 0 && !previousTweetId) {
+          tweetData.media = { media_ids: mediaIds }
+        }
 
         const { data } = await client.v2.tweet(tweetData)
         tweets.push(data)
@@ -59,8 +81,11 @@ export async function POST(req) {
 
       result = { data: tweets[0], thread: tweets }
     } else {
-      // Single tweet
-      const { data } = await client.v2.tweet(text)
+      const tweetData = { text }
+      if (mediaIds.length > 0) {
+        tweetData.media = { media_ids: mediaIds }
+      }
+      const { data } = await client.v2.tweet(tweetData)
       result = { data }
     }
 

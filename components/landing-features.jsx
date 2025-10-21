@@ -6,43 +6,57 @@ const features = [
     icon: Sparkles,
     title: "AI Tweet Generation",
     description: "Generate engaging, on-brand tweets in seconds using advanced AI. Just provide a topic or idea.",
+    gradient: "from-blue-500 to-cyan-500",
+    bgGradient: "from-blue-500/10 to-cyan-500/10",
   },
   {
     icon: Calendar,
     title: "Smart Scheduler",
     description:
       "Schedule tweets for optimal engagement times. Auto-post directly to Twitter without lifting a finger.",
+    gradient: "from-purple-500 to-pink-500",
+    bgGradient: "from-purple-500/10 to-pink-500/10",
   },
   {
     icon: BarChart3,
     title: "Analytics Dashboard",
     description: "Track impressions, engagement, and growth with beautiful, actionable analytics.",
+    gradient: "from-pink-500 to-rose-500",
+    bgGradient: "from-pink-500/10 to-rose-500/10",
   },
   {
     icon: Zap,
     title: "Instant Generation",
     description: "Get tweet suggestions in under 3 seconds. No more staring at a blank screen.",
+    gradient: "from-amber-500 to-orange-500",
+    bgGradient: "from-amber-500/10 to-orange-500/10",
   },
   {
     icon: Clock,
     title: "Content Calendar",
     description: "Visualize your posting schedule with an intuitive calendar view. Plan weeks ahead.",
+    gradient: "from-green-500 to-emerald-500",
+    bgGradient: "from-green-500/10 to-emerald-500/10",
   },
   {
     icon: TrendingUp,
     title: "Growth Tracking",
     description: "Monitor follower growth, engagement rates, and top-performing content over time.",
+    gradient: "from-indigo-500 to-blue-500",
+    bgGradient: "from-indigo-500/10 to-blue-500/10",
   },
 ]
 
 export function LandingFeatures() {
   return (
-    <section id="features" className="py-20 md:py-32">
+    <section id="features" className="py-20 md:py-32 relative">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent" />
+
       <div className="container">
         <div className="mx-auto max-w-2xl text-center mb-16">
           <h2 className="text-balance text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl mb-4">
             Everything You Need to{" "}
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               Dominate Twitter
             </span>
           </h2>
@@ -57,11 +71,16 @@ export function LandingFeatures() {
             return (
               <Card
                 key={feature.title}
-                className="border-border/50 bg-card/50 backdrop-blur transition-all hover:border-primary/50 hover:shadow-lg"
+                className="group border-border/50 bg-card/50 backdrop-blur transition-all hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1"
               >
                 <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
-                    <Icon className="h-6 w-6 text-primary" />
+                  <div
+                    className={`mb-2 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${feature.bgGradient} border border-border/50 group-hover:scale-110 transition-transform`}
+                  >
+                    <Icon
+                      className={`h-7 w-7 bg-gradient-to-br ${feature.gradient} bg-clip-text text-transparent`}
+                      style={{ WebkitTextFillColor: "transparent", WebkitBackgroundClip: "text" }}
+                    />
                   </div>
                   <CardTitle className="text-xl">{feature.title}</CardTitle>
                 </CardHeader>
